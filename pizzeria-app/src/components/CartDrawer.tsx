@@ -15,16 +15,22 @@ interface CartDrawerProps {
 
 export function CartDrawer({ cart, isOpen, onClose, updateQuantity, removeFromCart, cartTotal, placeOrder }: CartDrawerProps) {
   const [deliveryType, setDeliveryType] = useState<'home' | 'pickup'>('home');
-  const [formData, setFormData] = useState({ name: '', phone: '', address: '' });
+  const [formData, setFormData] = useState({ name: '', phone: '', houseNo: '', street: '', landmark: '', pincode: '' });
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     setIsSubmitting(true);
-    setTimeout(() => { placeOrder({ ...formData, delivery_type: deliveryType }); setIsSubmitting(false); setFormData({ name: '', phone: '', address: '' }); }, 1000);
+    const fullAddress = deliveryType === 'home' 
+      ? `House No: ${formData.houseNo}, Street: ${formData.street}, Landmark: ${formData.landmark}, Pincode: ${formData.pincode}`
+      : 'Pickup from shop';
+    setTimeout(() => { placeOrder({ name: formData.name, phone: formData.phone, address: fullAddress, delivery_type: deliveryType }); setIsSubmitting(false); setFormData({ name: '', phone: '', houseNo: '', street: '', landmark: '', pincode: '' }); }, 1000);
   };
 
-  const whatsappText = `Hi Caveman's Pizzeria,%0AI want to place an order:%0ATotal: ₹${cartTotal}%0AName: ${formData.name || 'Guest'}%0APhone: ${formData.phone || 'N/A'}%0ADelivery Type: ${deliveryType}%0AAddress: ${deliveryType === 'home' ? formData.address : 'Pickup from shop'}`;
+  const addressText = deliveryType === 'home'
+      ? `House No: ${formData.houseNo}, Street: ${formData.street}, Landmark: ${formData.landmark}, Pincode: ${formData.pincode}`
+      : 'Pickup from shop';
+  const whatsappText = `Hi Caveman's Pizzeria,%0AI want to place an order:%0ATotal: ₹${cartTotal}%0AName: ${formData.name || 'Guest'}%0APhone: ${formData.phone || 'N/A'}%0ADelivery Type: ${deliveryType}%0AAddress: ${addressText}`;
 
   return (
     <AnimatePresence>
@@ -86,7 +92,12 @@ export function CartDrawer({ cart, isOpen, onClose, updateQuantity, removeFromCa
                     <input type="tel" placeholder="Phone Number" required className="w-full bg-[#FDF6EC] border border-[#E85D3A]/20 rounded-xl px-4 py-2.5 text-[#2D2016] focus:outline-none focus:border-[#E85D3A] text-sm font-medium" value={formData.phone} onChange={e => setFormData({...formData, phone: e.target.value})} />
                     
                     {deliveryType === 'home' ? (
-                      <textarea placeholder="House No, Street, Landmark" required className="w-full bg-[#FDF6EC] border border-[#E85D3A]/20 rounded-xl px-4 py-3 text-[#2D2016] focus:outline-none focus:border-[#E85D3A] h-20 resize-none text-sm font-medium" value={formData.address} onChange={e => setFormData({...formData, address: e.target.value})} />
+                      <div className="grid grid-cols-2 gap-2">
+                         <input type="text" placeholder="House No / Flat" required className="w-full bg-[#FDF6EC] border border-[#E85D3A]/20 rounded-xl px-4 py-2.5 text-[#2D2016] focus:outline-none focus:border-[#E85D3A] text-sm font-medium" value={formData.houseNo} onChange={e => setFormData({...formData, houseNo: e.target.value})} />
+                         <input type="text" placeholder="Street / Area" required className="w-full bg-[#FDF6EC] border border-[#E85D3A]/20 rounded-xl px-4 py-2.5 text-[#2D2016] focus:outline-none focus:border-[#E85D3A] text-sm font-medium" value={formData.street} onChange={e => setFormData({...formData, street: e.target.value})} />
+                         <input type="text" placeholder="Landmark" required className="w-full bg-[#FDF6EC] border border-[#E85D3A]/20 rounded-xl px-4 py-2.5 text-[#2D2016] focus:outline-none focus:border-[#E85D3A] text-sm font-medium" value={formData.landmark} onChange={e => setFormData({...formData, landmark: e.target.value})} />
+                         <input type="text" placeholder="Pincode" required className="w-full bg-[#FDF6EC] border border-[#E85D3A]/20 rounded-xl px-4 py-2.5 text-[#2D2016] focus:outline-none focus:border-[#E85D3A] text-sm font-medium" value={formData.pincode} onChange={e => setFormData({...formData, pincode: e.target.value})} />
+                      </div>
                     ) : (
                       <div className="bg-[#E85D3A]/10 text-[#E85D3A] p-4 rounded-xl text-center text-sm font-bold border border-[#E85D3A]/20 flex items-center justify-center gap-2">
                         <span>🏪</span> You can pick up your order from the shop
