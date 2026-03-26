@@ -6,10 +6,11 @@ import { FloatingDecorations, MarqueeBanner } from './components/Decorations';
 import { CustomerView } from './components/CustomerView';
 import { CartDrawer } from './components/CartDrawer';
 import { AdminView } from './components/AdminView';
+import { DeliveryPage } from './components/DeliveryPage';
 import type { MenuItem, CartItem, Order } from './types';
 
 export default function App() {
-  const [view, setView] = useState<'customer' | 'admin' | 'confirmation' | 'track'>('customer');
+  const [view, setView] = useState<'customer' | 'admin' | 'confirmation' | 'track' | 'delivery'>('customer');
   const [menu, setMenu] = useState<MenuItem[]>(INITIAL_MENU);
   const [cart, setCart] = useState<CartItem[]>([]);
   const [orders, setOrders] = useState<Order[]>([]);
@@ -100,6 +101,10 @@ export default function App() {
             </button>
           ))}
           {/* Admin link in desktop nav */}
+          <button onClick={() => setView('delivery')}
+            className="hover:text-[#E85D3A] transition-colors relative group font-bold ml-2">
+            Delivery
+          </button>
           <button onClick={() => setView('admin')}
             className="hover:text-[#E85D3A] transition-colors relative group font-bold">
             Admin
@@ -137,6 +142,9 @@ export default function App() {
             ].map(item => (
               <button key={item.label} onClick={item.action} className="text-left font-bold text-lg text-[#2D2016] hover:text-[#E85D3A]">{item.label}</button>
             ))}
+            <button onClick={() => { setView('delivery'); setIsMobileMenuOpen(false); }} className="text-left font-bold text-lg text-[#E85D3A]">
+              Delivery Portal
+            </button>
             <button onClick={() => { setView('admin'); setIsMobileMenuOpen(false); }} className="text-left font-bold text-lg text-[#E85D3A]">
               Admin Login
             </button>
@@ -149,9 +157,10 @@ export default function App() {
       {view === 'admin' && <div className="pt-[72px]" />}
 
       {/* Main */}
-      <main className={view === 'confirmation' || view === 'track' ? 'pt-24 min-h-[80vh] container mx-auto px-4 pb-16' : ''}>
+      <main className={view === 'confirmation' || view === 'track' || view === 'delivery' ? 'pt-24 min-h-[80vh] container mx-auto px-4 pb-16' : ''}>
         {view === 'customer' && <CustomerView menu={menu} addToCart={addToCart} />}
         {view === 'admin' && <AdminView menu={menu} orders={orders} updateMenuItem={updateMenuItem} deleteMenuItem={deleteMenuItem} addMenuItem={addMenuItem} updateOrderStatus={updateOrderStatus} onExit={() => setView('customer')} />}
+        {view === 'delivery' && <DeliveryPage />}
         {view === 'confirmation' && placedOrder && (
           <div className="max-w-xl mx-auto bg-white rounded-3xl p-8 shadow-2xl border-2 border-[#E85D3A]/20 transform transition-all mt-10">
             <div className="text-center mb-6">
