@@ -1,18 +1,18 @@
 import { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { MapPin, Copy, CheckCircle2, AlertCircle } from 'lucide-react';
+import { MapPin, AlertCircle, Share2 } from 'lucide-react';
 
 export function DeliveryPage() {
-  const [orderId, setOrderId] = useState('');
+  const [phone, setPhone] = useState('');
   const [locationLink, setLocationLink] = useState('');
   const [error, setError] = useState('');
   const [isLoading, setIsLoading] = useState(false);
-  const [copied, setCopied] = useState(false);
+  const [shared, setShared] = useState(false);
 
   const fetchLocation = () => {
     setIsLoading(true);
     setError('');
-    setCopied(false);
+    setShared(false);
     
     if (!navigator.geolocation) {
       setError('Geolocation is not supported by your browser');
@@ -23,24 +23,55 @@ export function DeliveryPage() {
     navigator.geolocation.getCurrentPosition(
       (position) => {
         const { latitude, longitude } = position.coords;
-        let link = `https://www.google.com/maps?q=${latitude},${longitude}`;
+        const link = `https://www.google.com/maps?q=${latitude},${longitude}`;
         setLocationLink(link);
         setIsLoading(false);
       },
       (error) => {
         console.error(error);
-        setError('Please enable location access to share your location');
+        setError('Please enable location access');
         setIsLoading(false);
       }
     );
   };
 
-  const copyToClipboard = () => {
-    if (locationLink) {
-      navigator.clipboard.writeText(locationLink);
-      setCopied(true);
-      setTimeout(() => setCopied(false), 2000);
+  const handleShare = () => {
+    if (!locationLink) return;
+    
+    const shareMessage = `Track your delivery here: ${locationLink}`;
+
+    if (navigator.share) {
+      navigator.share({
+        title: 'Delivery Location',
+        text: shareMessage,
+      }).then(() => {
+        handleSuccess();
+      }).catch((err) => {
+        if (err.name !== 'AbortError') {
+          console.error('Share failed:', err);
+          fallbackShare(shareMessage);
+        }
+      });
+    } else {
+      fallbackShare(shareMessage);
     }
+  };
+
+  const fallbackShare = (message: string) => {
+    if (!phone) {
+      setError('Please enter Customer Phone Number to share via WhatsApp');
+      return;
+    }
+    setError('');
+    const cleanPhone = phone.replace(/\D/g, '');
+    const waLink = `https://wa.me/91${cleanPhone}?text=${encodeURIComponent(message)}`;
+    window.open(waLink, '_blank');
+    handleSuccess();
+  };
+
+  const handleSuccess = () => {
+    setShared(true);
+    setTimeout(() => setShared(false), 3500);
   };
 
   return (
@@ -50,18 +81,18 @@ export function DeliveryPage() {
           🚚
         </div>
         <h2 className="text-2xl font-black text-[#2D2016]">Delivery Portal</h2>
-        <p className="text-[#8B7355] text-sm mt-1">Share your live location for an order</p>
+        <p className="text-[#8B7355] text-sm mt-1">Share your live location with the customer</p>
       </div>
 
       <div className="space-y-5">
         <div>
-          <label className="block text-sm font-bold text-[#8B7355] mb-2 uppercase tracking-wide">Enter Order ID <span className="text-xs lowercase text-[#8B7355]/60 block">(Optional)</span></label>
+          <label className="block text-sm font-bold text-[#8B7355] mb-2 uppercase tracking-wide">Customer Phone Number <span className="text-xs lowercase text-[#8B7355]/60 block">(Optional for Web Share, Required for WhatsApp fallback)</span></label>
           <input 
-            type="text" 
-            placeholder="e.g. A1B2C3D4E" 
-            className="w-full bg-[#FDF6EC] border border-[#E85D3A]/20 rounded-xl px-4 py-4 text-[#2D2016] uppercase focus:outline-none focus:border-[#E85D3A] font-bold shadow-sm"
-            value={orderId}
-            onChange={(e) => setOrderId(e.target.value)}
+            type="tel" 
+            placeholder="e.g. 9876543210" 
+            className="w-full bg-[#FDF6EC] border border-[#E85D3A]/20 rounded-xl px-4 py-4 text-[#2D2016] uppercase focus:outline-none focus:border-[#E85D3A] font-bold shadow-sm mb-2"
+            value={phone}
+            onChange={(e) => setPhone(e.target.value)}
           />
         </div>
 
@@ -71,7 +102,7 @@ export function DeliveryPage() {
           className="w-full bg-[#E85D3A] hover:bg-[#D04E2E] text-white font-bold py-4 rounded-xl transition-all shadow-md flex items-center justify-center gap-2 disabled:opacity-70"
         >
           <MapPin className="w-5 h-5" />
-          {isLoading ? 'Fetching Location...' : 'Share My Location 📍'}
+          {isLoading ? 'Fetching Location...' : 'Get Location 📍'}
         </button>
 
         <AnimatePresence>
@@ -89,11 +120,11 @@ export function DeliveryPage() {
                 🗺️ {locationLink}
               </a>
               <button 
-                onClick={copyToClipboard}
-                className={`w-full font-bold py-3.5 rounded-xl transition-all flex items-center justify-center gap-2 shadow-sm border-2 ${copied ? 'bg-green-500 border-green-500 text-white' : 'bg-white border-[#E85D3A] text-[#E85D3A] hover:bg-[#E85D3A] hover:text-white'}`}
+                onClick={handleShare}
+                className={`w-full font-bold py-3.5 rounded-xl transition-all flex items-center justify-center gap-2 shadow-sm border-2 ${shared ? 'bg-green-500 border-green-500 text-white' : 'bg-white border-[#E85D3A] text-[#E85D3A] hover:bg-[#E85D3A] hover:text-white'}`}
               >
-                {copied ? <CheckCircle2 className="w-5 h-5" /> : <Copy className="w-5 h-5" />}
-                {copied ? 'Location copied!' : 'Copy Link'}
+                {shared ? <span className="text-xl">🚚</span> : <Share2 className="w-5 h-5" />}
+                {shared ? 'Location shared successfully 🚚' : 'Share My Location 📍'}
               </button>
             </motion.div>
           )}
