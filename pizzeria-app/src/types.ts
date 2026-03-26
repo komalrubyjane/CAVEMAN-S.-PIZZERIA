@@ -23,4 +23,5 @@ export interface Order {
   total: number;
   status: 'Pending' | 'Preparing' | 'Delivered';
   timestamp: number;
+  delivery_type: 'home' | 'pickup';
 }

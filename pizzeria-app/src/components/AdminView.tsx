@@ -75,11 +75,23 @@ export function AdminView({ menu, orders, updateMenuItem, deleteMenuItem, addMen
                   ))}
                   <div className="pt-3 border-t border-[#E85D3A]/10 mt-3 flex justify-between"><span className="text-[#8B7355]">Total</span><span className="text-lg font-bold text-[#E85D3A]">₹{order.total}</span></div>
                 </div>
-                <div className="md:w-56 bg-[#FDF6EC] p-4 rounded-xl text-sm">
-                  <h4 className="font-bold text-[#2D2016] mb-2">Customer</h4>
-                  <p className="text-[#8B7355]">{order.customerName}</p>
-                  <p className="text-[#8B7355]">{order.phone}</p>
-                  <p className="text-[#8B7355]">{order.address}</p>
+                <div className="md:w-56 bg-[#FDF6EC] p-4 rounded-xl text-sm border border-[#E85D3A]/10 shadow-sm">
+                  <h4 className="font-bold text-[#2D2016] mb-2 flex items-center justify-between">
+                    Customer
+                  </h4>
+                  <p className="font-bold text-[#2D2016]">{order.customerName}</p>
+                  <p className="text-[#8B7355] text-xs mb-2">{order.phone}</p>
+                  {order.delivery_type === 'home' ? (
+                    <div className="mt-2 bg-white p-3 rounded-xl border border-[#E85D3A]/20 shadow-sm">
+                       <p className="text-xs font-bold text-[#E85D3A] mb-1 flex items-center gap-1"><span>📍</span> Home Delivery</p>
+                       <p className="text-[#2D2016] text-xs leading-tight font-medium">{order.address}</p>
+                    </div>
+                  ) : (
+                    <div className="mt-2 bg-blue-50 p-3 rounded-xl border border-blue-200 shadow-sm">
+                       <p className="text-xs font-bold text-blue-600 mb-1 flex items-center gap-1"><span>🏪</span> Pickup</p>
+                       <p className="text-blue-700/80 text-xs leading-tight font-medium">Customer will pick up from shop</p>
+                    </div>
+                  )}
                 </div>
               </div>
             </div>

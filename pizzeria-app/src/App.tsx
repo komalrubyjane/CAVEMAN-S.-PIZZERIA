@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { motion } from 'framer-motion';
+import { motion, AnimatePresence } from 'framer-motion';
 import { ShoppingBag, ChefHat, MapPin, Phone, Clock, Menu as MenuIcon, X } from 'lucide-react';
 import { INITIAL_MENU } from './data';
 import { FloatingDecorations, MarqueeBanner } from './components/Decorations';
@@ -9,10 +9,13 @@ import { AdminView } from './components/AdminView';
 import type { MenuItem, CartItem, Order } from './types';
 
 export default function App() {
-  const [view, setView] = useState<'customer' | 'admin'>('customer');
+  const [view, setView] = useState<'customer' | 'admin' | 'confirmation' | 'track'>('customer');
   const [menu, setMenu] = useState<MenuItem[]>(INITIAL_MENU);
   const [cart, setCart] = useState<CartItem[]>([]);
   const [orders, setOrders] = useState<Order[]>([]);
+  const [placedOrder, setPlacedOrder] = useState<Order | null>(null);
+  const [trackOrderId, setTrackOrderId] = useState('');
+  const [trackedOrder, setTrackedOrder] = useState<Order | null>(null);
   const [isCartOpen, setIsCartOpen] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [isScrolled, setIsScrolled] = useState(false);
@@ -45,10 +48,19 @@ export default function App() {
   const cartTotal = cart.reduce((s, i) => s + i.price * i.quantity, 0);
   const cartCount = cart.reduce((s, i) => s + i.quantity, 0);
 
-  const placeOrder = (d: { name: string; phone: string; address: string }) => {
-    setOrders(prev => [{ id: Math.random().toString(36).substr(2, 9), customerName: d.name, phone: d.phone, address: d.address, items: [...cart], total: cartTotal, status: 'Pending' as const, timestamp: Date.now() }, ...prev]);
+  const placeOrder = (d: { name: string; phone: string; address: string; delivery_type: 'home' | 'pickup' }) => {
+    const newOrder: Order = { id: Math.random().toString(36).substr(2, 9).toUpperCase(), customerName: d.name, phone: d.phone, address: d.address, delivery_type: d.delivery_type, items: [...cart], total: cartTotal, status: 'Pending' as const, timestamp: Date.now() };
+    setOrders(prev => [newOrder, ...prev]);
     setCart([]); setIsCartOpen(false);
-    alert('🍕 Order placed! We will contact you shortly.');
+    setPlacedOrder(newOrder);
+    setView('confirmation');
+  };
+
+  const handleTrackSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    const order = orders.find(o => o.id === trackOrderId.toUpperCase());
+    if (order) setTrackedOrder(order);
+    else alert('Order not found!');
   };
 
   const updateMenuItem = (id: string, updates: Partial<MenuItem>) => setMenu(prev => prev.map(item => item.id === id ? { ...item, ...updates } : item));
@@ -78,9 +90,9 @@ export default function App() {
           {/* Nav links */}
           <div className="hidden md:flex items-center gap-8 font-semibold text-[#8B7355]">
             {[{ label: 'Home', action: () => setView('customer') },
-              { label: 'Menu', action: () => document.getElementById('menu')?.scrollIntoView({ behavior: 'smooth' }) },
-              { label: 'About', action: () => document.getElementById('about')?.scrollIntoView({ behavior: 'smooth' }) },
-              { label: 'Contact', action: () => document.getElementById('contact')?.scrollIntoView({ behavior: 'smooth' }) },
+              { label: 'Menu', action: () => { setView('customer'); setTimeout(() => document.getElementById('menu')?.scrollIntoView({ behavior: 'smooth' }), 100); } },
+              { label: 'Track Order', action: () => { setView('track'); setTrackedOrder(null); setTrackOrderId(''); } },
+              { label: 'Contact', action: () => { setView('customer'); setTimeout(() => document.getElementById('contact')?.scrollIntoView({ behavior: 'smooth' }), 100); } },
             ].map(item => (
               <button key={item.label} onClick={item.action} className="hover:text-[#E85D3A] transition-colors relative group">
                 {item.label}
@@ -88,9 +100,9 @@ export default function App() {
             </button>
           ))}
           {/* Admin link in desktop nav */}
-          <button onClick={() => setView(view === 'admin' ? 'customer' : 'admin')}
+          <button onClick={() => setView('admin')}
             className="hover:text-[#E85D3A] transition-colors relative group font-bold">
-            {view === 'admin' ? 'Exit Admin' : 'Admin'}
+            Admin
           </button>
         </div>
 
@@ -117,15 +129,16 @@ export default function App() {
         {/* Mobile Navigation Menu */}
         <motion.div initial={{ height: 0, opacity: 0 }} animate={{ height: isMobileMenuOpen ? 'auto' : 0, opacity: isMobileMenuOpen ? 1 : 0 }} className="md:hidden overflow-hidden bg-white/95 backdrop-blur-md border-b border-[#E85D3A]/10">
           <div className="flex flex-col px-4 py-4 space-y-4">
-            {view === 'customer' && [
-              { label: 'Menu', action: () => { document.getElementById('menu')?.scrollIntoView({ behavior: 'smooth' }); setIsMobileMenuOpen(false); } },
-              { label: 'About', action: () => { document.getElementById('about')?.scrollIntoView({ behavior: 'smooth' }); setIsMobileMenuOpen(false); } },
-              { label: 'Contact', action: () => { document.getElementById('contact')?.scrollIntoView({ behavior: 'smooth' }); setIsMobileMenuOpen(false); } },
+            {view !== 'admin' && [
+              { label: 'Home', action: () => { setView('customer'); setIsMobileMenuOpen(false); } },
+              { label: 'Menu', action: () => { setView('customer'); setTimeout(() => document.getElementById('menu')?.scrollIntoView({ behavior: 'smooth' }), 100); setIsMobileMenuOpen(false); } },
+              { label: 'Track Order', action: () => { setView('track'); setTrackedOrder(null); setTrackOrderId(''); setIsMobileMenuOpen(false); } },
+              { label: 'Contact', action: () => { setView('customer'); setTimeout(() => document.getElementById('contact')?.scrollIntoView({ behavior: 'smooth' }), 100); setIsMobileMenuOpen(false); } },
             ].map(item => (
               <button key={item.label} onClick={item.action} className="text-left font-bold text-lg text-[#2D2016] hover:text-[#E85D3A]">{item.label}</button>
             ))}
-            <button onClick={() => { setView(view === 'admin' ? 'customer' : 'admin'); setIsMobileMenuOpen(false); }} className="text-left font-bold text-lg text-[#E85D3A]">
-              {view === 'admin' ? 'Exit Admin' : 'Admin Login'}
+            <button onClick={() => { setView('admin'); setIsMobileMenuOpen(false); }} className="text-left font-bold text-lg text-[#E85D3A]">
+              Admin Login
             </button>
           </div>
         </motion.div>
@@ -136,11 +149,83 @@ export default function App() {
       {view === 'admin' && <div className="pt-[72px]" />}
 
       {/* Main */}
-      <main>
-        {view === 'customer' ? (
-          <CustomerView menu={menu} addToCart={addToCart} />
-        ) : (
-          <AdminView menu={menu} orders={orders} updateMenuItem={updateMenuItem} deleteMenuItem={deleteMenuItem} addMenuItem={addMenuItem} updateOrderStatus={updateOrderStatus} onExit={() => setView('customer')} />
+      <main className={view === 'confirmation' || view === 'track' ? 'pt-24 min-h-[80vh] container mx-auto px-4 pb-16' : ''}>
+        {view === 'customer' && <CustomerView menu={menu} addToCart={addToCart} />}
+        {view === 'admin' && <AdminView menu={menu} orders={orders} updateMenuItem={updateMenuItem} deleteMenuItem={deleteMenuItem} addMenuItem={addMenuItem} updateOrderStatus={updateOrderStatus} onExit={() => setView('customer')} />}
+        {view === 'confirmation' && placedOrder && (
+          <div className="max-w-xl mx-auto bg-white rounded-3xl p-8 shadow-2xl border-2 border-[#E85D3A]/20 transform transition-all mt-10">
+            <div className="text-center mb-6">
+              <div className="w-20 h-20 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4"><span className="text-4xl">🎉</span></div>
+              <h1 className="text-3xl font-extrabold text-[#2D2016]">Order Confirmed!</h1>
+              <p className="text-[#8B7355] mt-2">Thank you for craving our pizzas.</p>
+            </div>
+            <div className="bg-[#FDF6EC] p-6 rounded-2xl border border-[#E85D3A]/10 space-y-4">
+              <div className="flex justify-between items-center border-b border-[#E85D3A]/10 pb-4">
+                <span className="text-[#8B7355] font-semibold">Order ID</span>
+                <span className="text-[#E85D3A] font-extrabold text-xl">#{placedOrder.id}</span>
+              </div>
+              <div>
+                <span className="text-[#8B7355] font-semibold block mb-2">Delivery Details</span>
+                {placedOrder.delivery_type === 'home' ? (
+                  <div className="bg-white p-4 rounded-xl shadow-sm border border-orange-100">
+                    <p className="flex items-center gap-2 font-bold text-[#E85D3A] mb-1"><span>📍</span> Home Delivery</p>
+                    <p className="text-[#2D2016] leading-tight text-sm font-medium">{placedOrder.address}</p>
+                  </div>
+                ) : (
+                  <div className="bg-blue-50 p-4 rounded-xl shadow-sm border border-blue-100">
+                    <p className="flex items-center gap-2 font-bold text-blue-600 mb-1"><span>🏪</span> Pickup from shop</p>
+                    <p className="text-blue-700/80 leading-tight text-sm">Your order will be prepared and awaits you at our counter.</p>
+                  </div>
+                )}
+              </div>
+            </div>
+            <button onClick={() => setView('customer')} className="w-full mt-8 bg-[#E85D3A] text-white py-4 rounded-xl font-bold hover:bg-[#D04E2E] transition-colors shadow-lg">Back to Home</button>
+          </div>
+        )}
+        {view === 'track' && (
+          <div className="max-w-2xl mx-auto space-y-8 mt-10">
+            <div className="text-center">
+              <h1 className="text-4xl font-black text-[#2D2016] mb-2 text-center uppercase tracking-tight">Track Your <span className="text-[#E85D3A]">Order</span></h1>
+              <p className="text-[#8B7355] text-lg">Enter your order ID below to check its status.</p>
+            </div>
+            <form onSubmit={handleTrackSubmit} className="flex gap-2">
+              <input type="text" placeholder="e.g. A1B2C3D4E" required className="flex-1 bg-white border-2 border-[#E85D3A]/20 rounded-xl px-5 py-4 text-lg text-[#2D2016] uppercase focus:outline-none focus:border-[#E85D3A] shadow-sm font-bold" value={trackOrderId} onChange={e => setTrackOrderId(e.target.value)} />
+              <button type="submit" className="bg-[#E85D3A] hover:bg-[#D04E2E] px-8 py-4 rounded-xl text-white font-bold transition-all shadow-lg hidden md:block">Track Order</button>
+            </form>
+
+            <AnimatePresence>
+              {trackedOrder && (
+                <motion.div initial={{ opacity: 0, scale: 0.95, y: 20 }} animate={{ opacity: 1, scale: 1, y: 0 }} className="bg-white p-6 md:p-8 rounded-3xl shadow-xl border border-[#E85D3A]/10 mt-8 space-y-6">
+                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-[#E85D3A]/10 pb-6">
+                    <div>
+                      <h3 className="text-[#8B7355] font-semibold text-sm uppercase tracking-wider">Order Status for</h3>
+                      <p className="text-2xl font-black text-[#E85D3A]">#{trackedOrder.id}</p>
+                    </div>
+                    <div className="bg-[#FDF6EC] px-6 py-3 rounded-full text-center font-bold text-[#E85D3A] border border-[#E85D3A]/20 shadow-inner">
+                      {trackedOrder.status === 'Pending' && '⏳ Order Received'}
+                      {trackedOrder.status === 'Preparing' && '👨‍🍳 Preparing in Kitchen'}
+                      {trackedOrder.status === 'Delivered' && '✅ Completed'}
+                    </div>
+                  </div>
+
+                  <div className="space-y-4">
+                    <h4 className="font-bold text-[#2D2016] flex items-center gap-2"><MapPin className="text-[#E85D3A] w-5 h-5"/> Delivery Updates</h4>
+                    {trackedOrder.delivery_type === 'home' ? (
+                      <div className="p-4 rounded-xl bg-orange-50 border border-orange-200">
+                        <p className="font-semibold text-orange-800 mb-1">Your order will be delivered to:</p>
+                        <p className="text-orange-900/80 text-sm font-medium">{trackedOrder.address}</p>
+                      </div>
+                    ) : (
+                      <div className="p-4 rounded-xl bg-blue-50 border border-blue-200">
+                        <p className="font-semibold text-blue-800 mb-1">Pickup Information</p>
+                        <p className="text-blue-900/80 text-sm font-medium">Your order will be ready for pickup at the shop.</p>
+                      </div>
+                    )}
+                  </div>
+                </motion.div>
+              )}
+            </AnimatePresence>
+          </div>
         )}
       </main>
 

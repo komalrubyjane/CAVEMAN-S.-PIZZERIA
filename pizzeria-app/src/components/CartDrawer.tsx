@@ -10,20 +10,21 @@ interface CartDrawerProps {
   updateQuantity: (id: string, delta: number) => void;
   removeFromCart: (id: string) => void;
   cartTotal: number;
-  placeOrder: (details: { name: string; phone: string; address: string }) => void;
+  placeOrder: (details: { name: string; phone: string; address: string; delivery_type: 'home' | 'pickup' }) => void;
 }
 
 export function CartDrawer({ cart, isOpen, onClose, updateQuantity, removeFromCart, cartTotal, placeOrder }: CartDrawerProps) {
+  const [deliveryType, setDeliveryType] = useState<'home' | 'pickup'>('home');
   const [formData, setFormData] = useState({ name: '', phone: '', address: '' });
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     setIsSubmitting(true);
-    setTimeout(() => { placeOrder(formData); setIsSubmitting(false); setFormData({ name: '', phone: '', address: '' }); }, 1000);
+    setTimeout(() => { placeOrder({ ...formData, delivery_type: deliveryType }); setIsSubmitting(false); setFormData({ name: '', phone: '', address: '' }); }, 1000);
   };
 
-  const whatsappText = `Hi Caveman's Pizzeria,%0AI want to place an order:%0ATotal: ₹${cartTotal}%0AName: ${formData.name || 'Guest'}%0APhone: ${formData.phone || 'N/A'}%0AAddress: ${formData.address || 'Pickup'}`;
+  const whatsappText = `Hi Caveman's Pizzeria,%0AI want to place an order:%0ATotal: ₹${cartTotal}%0AName: ${formData.name || 'Guest'}%0APhone: ${formData.phone || 'N/A'}%0ADelivery Type: ${deliveryType}%0AAddress: ${deliveryType === 'home' ? formData.address : 'Pickup from shop'}`;
 
   return (
     <AnimatePresence>
@@ -68,13 +69,34 @@ export function CartDrawer({ cart, isOpen, onClose, updateQuantity, removeFromCa
                 <div className="flex justify-between items-center text-xl font-extrabold text-[#2D2016]">
                   <span>Total</span><span className="text-[#E85D3A]">₹{cartTotal}</span>
                 </div>
-                <form onSubmit={handleSubmit} className="space-y-2">
-                  <input type="text" placeholder="Your Name" required className="w-full bg-[#FDF6EC] border border-[#E85D3A]/20 rounded-xl px-4 py-2.5 text-[#2D2016] focus:outline-none focus:border-[#E85D3A] text-sm" value={formData.name} onChange={e => setFormData({...formData, name: e.target.value})} />
-                  <input type="tel" placeholder="Phone Number" required className="w-full bg-[#FDF6EC] border border-[#E85D3A]/20 rounded-xl px-4 py-2.5 text-[#2D2016] focus:outline-none focus:border-[#E85D3A] text-sm" value={formData.phone} onChange={e => setFormData({...formData, phone: e.target.value})} />
-                  <textarea placeholder="Delivery Address" required className="w-full bg-[#FDF6EC] border border-[#E85D3A]/20 rounded-xl px-4 py-2.5 text-[#2D2016] focus:outline-none focus:border-[#E85D3A] h-16 resize-none text-sm" value={formData.address} onChange={e => setFormData({...formData, address: e.target.value})} />
-                  <div className="grid grid-cols-2 gap-2 pt-1">
-                    <a href={`https://wa.me/919876543210?text=${whatsappText}`} target="_blank" rel="noopener noreferrer" className="bg-green-500 hover:bg-green-600 text-white font-bold py-3 rounded-xl text-center transition-colors text-sm">WhatsApp</a>
-                    <button type="submit" disabled={isSubmitting} className="bg-[#E85D3A] hover:bg-[#D04E2E] text-white font-bold py-3 rounded-xl transition-colors text-sm disabled:opacity-50">{isSubmitting ? 'Placing...' : 'Order Now'}</button>
+                <form onSubmit={handleSubmit} className="space-y-4">
+                  <div className="flex gap-4">
+                    <label className={`flex-1 flex flex-col items-center justify-center p-3 rounded-2xl border-2 cursor-pointer transition-all ${deliveryType === 'home' ? 'border-[#E85D3A] bg-[#E85D3A]/10 text-[#E85D3A]' : 'border-[#E85D3A]/20 bg-white text-[#8B7355] hover:border-[#E85D3A]/40'}`}>
+                      <input type="radio" name="delivery_type" value="home" checked={deliveryType === 'home'} onChange={() => setDeliveryType('home')} className="hidden" />
+                      <span className="text-2xl mb-1">🚚</span> <span className="font-extrabold text-sm">Home Delivery</span>
+                    </label>
+                    <label className={`flex-1 flex flex-col items-center justify-center p-3 rounded-2xl border-2 cursor-pointer transition-all ${deliveryType === 'pickup' ? 'border-[#E85D3A] bg-[#E85D3A]/10 text-[#E85D3A]' : 'border-[#E85D3A]/20 bg-white text-[#8B7355] hover:border-[#E85D3A]/40'}`}>
+                      <input type="radio" name="delivery_type" value="pickup" checked={deliveryType === 'pickup'} onChange={() => setDeliveryType('pickup')} className="hidden" />
+                      <span className="text-2xl mb-1">🏪</span> <span className="font-extrabold text-sm">Pickup</span>
+                    </label>
+                  </div>
+                  
+                  <div className="space-y-2">
+                    <input type="text" placeholder="Your Name" required className="w-full bg-[#FDF6EC] border border-[#E85D3A]/20 rounded-xl px-4 py-2.5 text-[#2D2016] focus:outline-none focus:border-[#E85D3A] text-sm font-medium" value={formData.name} onChange={e => setFormData({...formData, name: e.target.value})} />
+                    <input type="tel" placeholder="Phone Number" required className="w-full bg-[#FDF6EC] border border-[#E85D3A]/20 rounded-xl px-4 py-2.5 text-[#2D2016] focus:outline-none focus:border-[#E85D3A] text-sm font-medium" value={formData.phone} onChange={e => setFormData({...formData, phone: e.target.value})} />
+                    
+                    {deliveryType === 'home' ? (
+                      <textarea placeholder="House No, Street, Landmark" required className="w-full bg-[#FDF6EC] border border-[#E85D3A]/20 rounded-xl px-4 py-3 text-[#2D2016] focus:outline-none focus:border-[#E85D3A] h-20 resize-none text-sm font-medium" value={formData.address} onChange={e => setFormData({...formData, address: e.target.value})} />
+                    ) : (
+                      <div className="bg-[#E85D3A]/10 text-[#E85D3A] p-4 rounded-xl text-center text-sm font-bold border border-[#E85D3A]/20 flex items-center justify-center gap-2">
+                        <span>🏪</span> You can pick up your order from the shop
+                      </div>
+                    )}
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-2 pt-2 border-t border-[#E85D3A]/10">
+                    <a href={`https://wa.me/919876543210?text=${whatsappText}`} target="_blank" rel="noopener noreferrer" className="bg-[#2D2016] hover:bg-black text-white font-bold py-3 rounded-xl text-center transition-colors text-sm">WhatsApp</a>
+                    <button type="submit" disabled={isSubmitting} className="bg-[#E85D3A] hover:bg-[#D04E2E] text-white font-bold py-3 rounded-xl transition-colors text-sm disabled:opacity-50 tracking-wide">{isSubmitting ? 'Processing...' : 'Place Order'}</button>
                   </div>
                 </form>
               </div>
